@@ -32,7 +32,7 @@ void main(List<String> arguments) async {
     try {
       Map<String, dynamic> fileContentMap = json.decode(fileContent);
 
-      final instance = "  static $clazzName get ${fileName.uncapitalize()} => const $clazzName();";
+      final instance = "  static $clazzName get ${fileName.uncapitalize()} => $clazzName();";
       final clazz = _clazz(clazzName, fileContentMap);
 
       _clazzInstances.add(instance);
@@ -75,20 +75,20 @@ String _locales(Map yaml) {
   final locales = (yaml["locales"] as List?)
       ?.map(
         (locale) =>
-            locale["countries-code"]
-                ?.map(
-                  (countryCode) =>
-                      "    Locale('${locale["language-code"]}', '$countryCode')",
-                )
-                ?.toList() ??
-            ["    Locale('${locale["language-code"]}')"],
-      )
+    locale["countries-code"]
+        ?.map(
+          (countryCode) =>
+      "    Locale('${locale["language-code"]}', '$countryCode')",
+    )
+        ?.toList() ??
+        ["    Locale('${locale["language-code"]}')"],
+  )
       .toList()
       .reduce(
         (l1, l2) =>
-            List.castFrom<dynamic, String>(l1).toList() +
-            List.castFrom<dynamic, String>(l2).toList(),
-      );
+    List.castFrom<dynamic, String>(l1).toList() +
+        List.castFrom<dynamic, String>(l2).toList(),
+  );
 
   return "[\n${locales.join(',\n')},\n  ]";
 }
@@ -104,24 +104,29 @@ String _jsonPath(Map yaml) {
 String _clazz(String clazzName, Map<String, dynamic> content) {
   final keys = [];
 
-  for (String key in content.keys) {
+  content.forEach((key, value) {
     final array = key.split('_');
     final sb = StringBuffer();
-    
+
     for (var item in array) {
       sb.write(item.capitalize());
     }
 
     final methodName = sb.toString().uncapitalize();
-
-    keys.add('''
+    if(value.toString().contains("{")){
+      keys.add('''
   String $methodName({int? pluralValue, List<String>? args, Map<String, dynamic>? namedArgs}) 
   => "$key".translate(pluralValue: pluralValue, args: args, namedArgs: namedArgs);''');
-  }
+
+    }else{
+      keys.add('''
+  final String $methodName = "$key".translate();''');
+    }
+
+  });
 
   return ''' 
 class $clazzName {
-  const $clazzName();
 
 ${keys.join('\n')}
 }''';
